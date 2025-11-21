@@ -1,9 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+
+	"github.com/frankheinz87/pokedex/repl"
 )
 
 func main() {
-	fmt.Println("Hello, World!")
+	scanner := bufio.NewScanner(os.Stdin)
+	for i := 1; i > 0; i++ {
+		fmt.Print("Pokedex > ")
+		if scanner.Scan() {
+			text := scanner.Text()
+			words := repl.CleanInput(text)
+			fmt.Println("Your command was:", words[0])
+		}
+	}
+
 }
