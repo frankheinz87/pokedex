@@ -14,7 +14,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*config) error
+	callback    func(*Config) error
 }
 
 type Area struct {
@@ -29,9 +29,9 @@ type Response struct {
 	Results  []Area  `json:"results"`
 }
 
-type config struct {
-	nextLocationsURL *string
-	prevLocationsURL *string
+type Config struct {
+	NextLocationsURL *string
+	PrevLocationsURL *string
 }
 
 var commands = map[string]cliCommand{
@@ -57,13 +57,13 @@ var commands = map[string]cliCommand{
 	},
 }
 
-func CommandExit(*config) error {
+func CommandExit(cfg *Config) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return errors.New("program exited via user command")
 }
 
-func CommandHelp(*config) error {
+func CommandHelp(cfg *Config) error {
 	fmt.Println(`Welcome to the Pokedex!
 Usage:
 	
@@ -72,10 +72,10 @@ exit: Exit the Pokedex`)
 	return nil
 }
 
-func CommandMap(cfg *config) error {
+func CommandMap(cfg *Config) error {
 	url := "https://pokeapi.co/api/v2/location-area"
-	if cfg.nextLocationsURL != nil {
-		url = *cfg.nextLocationsURL
+	if cfg.NextLocationsURL != nil {
+		url = *cfg.NextLocationsURL
 	}
 
 	res, err := http.Get(url)
@@ -95,8 +95,8 @@ func CommandMap(cfg *config) error {
 		log.Fatal(err)
 	}
 
-	cfg.nextLocationsURL = locResp.Next
-	cfg.prevLocationsURL = locResp.Previous
+	cfg.NextLocationsURL = locResp.Next
+	cfg.PrevLocationsURL = locResp.Previous
 
 	for _, area := range locResp.Results {
 		fmt.Println(area.Name)
@@ -104,12 +104,12 @@ func CommandMap(cfg *config) error {
 	return nil
 }
 
-func CommandMapb(*config) error {
+func CommandMapb(cfg *Config) error {
 
 	return nil
 }
 
-func Execute(cfg *config, words []string) error {
+func Execute(cfg *Config, words []string) error {
 	if len(words) == 0 {
 		return nil
 	}
