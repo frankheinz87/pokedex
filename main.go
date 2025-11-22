@@ -15,7 +15,10 @@ func main() {
 		if scanner.Scan() {
 			text := scanner.Text()
 			words := repl.CleanInput(text)
-			fmt.Println("Your command was:", words[0])
+			//fmt.Println("Your command was:", words[0])
+			if err := repl.Execute(words); err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 
