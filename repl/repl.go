@@ -105,8 +105,37 @@ func CommandMap(cfg *Config) error {
 }
 
 func CommandMapb(cfg *Config) error {
+	if cfg.PrevLocationsURL == nil {
+		fmt.Println("you're on the first page")
+		return nil
+	} else {
+		url := *cfg.PrevLocationsURL
 
-	return nil
+		res, err := http.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer res.Body.Close()
+
+		data, err := io.ReadAll(res.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var locResp Response
+		err = json.Unmarshal(data, &locResp)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		cfg.NextLocationsURL = locResp.Next
+		cfg.PrevLocationsURL = locResp.Previous
+
+		for _, area := range locResp.Results {
+			fmt.Println(area.Name)
+		}
+		return nil
+	}
 }
 
 func Execute(cfg *Config, words []string) error {
