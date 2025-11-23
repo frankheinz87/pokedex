@@ -1,29 +1,16 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"os"
+	"time"
 
+	"github.com/frankheinz87/pokedex/internal/pokeapi"
 	"github.com/frankheinz87/pokedex/repl"
 )
 
 func main() {
-	scanner := bufio.NewScanner(os.Stdin)
+	pokeClient := pokeapi.NewClient(5*time.Second, 5*time.Minute)
 	cfg := &repl.Config{
-		NextLocationsURL: nil,
-		PrevLocationsURL: nil,
+		PokeapiClient: pokeClient,
 	}
-	for i := 1; i > 0; i++ {
-		fmt.Print("Pokedex > ")
-		if scanner.Scan() {
-			text := scanner.Text()
-			words := repl.CleanInput(text)
-			//fmt.Println("Your command was:", words[0])
-			if err := repl.Execute(cfg, words); err != nil {
-				fmt.Println(err)
-			}
-		}
-	}
-
+	repl.StartRepl(cfg)
 }

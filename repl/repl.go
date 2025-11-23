@@ -1,14 +1,15 @@
 package repl
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/frankheinz87/pokedex/internal/pokeapi"
 )
 
 type cliCommand struct {
@@ -30,6 +31,7 @@ type Response struct {
 }
 
 type Config struct {
+	PokeapiClient    pokeapi.Client
 	NextLocationsURL *string
 	PrevLocationsURL *string
 }
@@ -78,21 +80,9 @@ func CommandMap(cfg *Config) error {
 		url = *cfg.NextLocationsURL
 	}
 
-	res, err := http.Get(url)
+	locResp, err := cfg.PokeapiClient.ListLocations(url)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer res.Body.Close()
-
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var locResp Response
-	err = json.Unmarshal(data, &locResp)
-	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	cfg.NextLocationsURL = locResp.Next
@@ -111,21 +101,9 @@ func CommandMapb(cfg *Config) error {
 	} else {
 		url := *cfg.PrevLocationsURL
 
-		res, err := http.Get(url)
+		locResp, err := cfg.PokeapiClient.ListLocations(url)
 		if err != nil {
-			log.Fatal(err)
-		}
-		defer res.Body.Close()
-
-		data, err := io.ReadAll(res.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var locResp Response
-		err = json.Unmarshal(data, &locResp)
-		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		cfg.NextLocationsURL = locResp.Next
@@ -164,4 +142,55 @@ func decodeJSONResponse(res *http.Response) ([]Area, error) {
 func CleanInput(text string) []string {
 	return strings.Fields(strings.TrimSpace(strings.ToLower(text)))
 
+}
+
+func StartRepl(cfg *Config) {
+	reader := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("Pokedex > ")
+		if !reader.Scan() {
+			return
+		}
+
+		words := CleanInput(reader.Text())
+		if len(words) == 0 {
+			continue
+		}
+
+		commandName := words[0]
+		cmd, exists := getCommands()[commandName]
+		if !exists {
+			fmt.Println("Unknown command")
+			continue
+		}
+
+		if err := cmd.callback(cfg); err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+func getCommands() map[string]cliCommand {
+	return map[string]cliCommand{
+		"exit": {
+			name:        "exit",
+			description: "Exit the Pokedex",
+			callback:    CommandExit,
+		},
+		"help": {
+			name:        "help",
+			description: "Display usage information of the Pokedex",
+			callback:    CommandHelp,
+		},
+		"map": {
+			name:        "map",
+			description: "Displays the names of the next 20 location areas in the Pokemon world",
+			callback:    CommandMap,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "Displays the names of the previous 20 location areas in the Pokemon world",
+			callback:    CommandMapb,
+		},
+	}
 }
