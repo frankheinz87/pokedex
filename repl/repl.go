@@ -2,10 +2,8 @@ package repl
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -15,12 +13,25 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*Config) error
+	callback    func(*Config, string) error
 }
 
-type Area struct {
+/*type Area struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
+}
+
+type Location struct {
+	Name       string      `json:"name"`
+	Encounters []Encounter `json:"pokemon_encounters"`
+}
+
+type Encounter struct {
+	Pokemon Pokemon `json:"pokemon"`
+}
+
+type Pokemon struct {
+	Name string `json:"name"`
 }
 
 type Response struct {
@@ -29,6 +40,7 @@ type Response struct {
 	Previous *string `json:"previous"`
 	Results  []Area  `json:"results"`
 }
+*/
 
 type Config struct {
 	PokeapiClient    pokeapi.Client
@@ -57,15 +69,20 @@ var commands = map[string]cliCommand{
 		description: "Displays the names of the previous 20 location areas in the Pokemon world",
 		callback:    CommandMapb,
 	},
+	"explore": {
+		name:        "explore",
+		description: "Displays all pokemon to be encountered in the chosen area",
+		callback:    CommandExp,
+	},
 }
 
-func CommandExit(cfg *Config) error {
+func CommandExit(cfg *Config, loc string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return errors.New("program exited via user command")
 }
 
-func CommandHelp(cfg *Config) error {
+func CommandHelp(cfg *Config, loc string) error {
 	fmt.Println(`Welcome to the Pokedex!
 Usage:
 	
@@ -74,7 +91,29 @@ exit: Exit the Pokedex`)
 	return nil
 }
 
-func CommandMap(cfg *Config) error {
+func CommandExp(cfg *Config, loc string) error {
+	url := "https://pokeapi.co/api/v2/location-area"
+	if cfg.NextLocationsURL != nil {
+		url = *cfg.NextLocationsURL
+	}
+
+	locResp, err := cfg.PokeapiClient.LocationPokemon(url, loc)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Exploring %s...\n", loc)
+	fmt.Println("Found Pokemon:")
+
+	for _, encounter := range locResp.Encounters {
+		fmt.Println(encounter.Pokemon.Name)
+
+	}
+
+	return nil
+}
+
+func CommandMap(cfg *Config, loc string) error {
 	url := "https://pokeapi.co/api/v2/location-area"
 	if cfg.NextLocationsURL != nil {
 		url = *cfg.NextLocationsURL
@@ -94,7 +133,7 @@ func CommandMap(cfg *Config) error {
 	return nil
 }
 
-func CommandMapb(cfg *Config) error {
+func CommandMapb(cfg *Config, loc string) error {
 	if cfg.PrevLocationsURL == nil {
 		fmt.Println("you're on the first page")
 		return nil
@@ -116,7 +155,7 @@ func CommandMapb(cfg *Config) error {
 	}
 }
 
-func Execute(cfg *Config, words []string) error {
+/*func Execute(cfg *Config, words []string) error {
 	if len(words) == 0 {
 		return nil
 	}
@@ -137,7 +176,7 @@ func decodeJSONResponse(res *http.Response) ([]Area, error) {
 		return nil, err
 	}
 	return areas, nil
-}
+}*/
 
 func CleanInput(text string) []string {
 	return strings.Fields(strings.TrimSpace(strings.ToLower(text)))
@@ -158,13 +197,18 @@ func StartRepl(cfg *Config) {
 		}
 
 		commandName := words[0]
+		Location := ""
+		if len(words) > 1 {
+			Location = words[1]
+		}
+
 		cmd, exists := getCommands()[commandName]
 		if !exists {
 			fmt.Println("Unknown command")
 			continue
 		}
 
-		if err := cmd.callback(cfg); err != nil {
+		if err := cmd.callback(cfg, Location); err != nil {
 			fmt.Println(err)
 		}
 	}
@@ -191,6 +235,11 @@ func getCommands() map[string]cliCommand {
 			name:        "mapb",
 			description: "Displays the names of the previous 20 location areas in the Pokemon world",
 			callback:    CommandMapb,
+		},
+		"explore": {
+			name:        "mapb",
+			description: "Displays all pokemon to be encountered in the chosen area",
+			callback:    CommandExp,
 		},
 	}
 }
