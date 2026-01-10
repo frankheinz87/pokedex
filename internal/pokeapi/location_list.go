@@ -22,7 +22,8 @@ type Encounter struct {
 }
 
 type Pokemon struct {
-	Name string `json:"name"`
+	Name            string `json:"name"`
+	Base_experience int    `json:"base_experience"`
 }
 
 type Response struct {
@@ -106,6 +107,50 @@ func (c *Client) LocationPokemon(url string, loc string) (Location, error) {
 	var resp Location
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return Location{}, err
+	}
+
+	// 3. store in cache
+	c.cache.Add(fullUrl, data)
+
+	return resp, nil
+}
+
+func (c *Client) GetPokemon(url string, poc string) (Pokemon, error) {
+	fullUrl := url + "/" + poc
+
+	if poc == "" {
+		return Pokemon{}, fmt.Errorf("no pokemon given")
+	}
+
+	// 1. cache first
+	if data, ok := c.cache.Get(fullUrl); ok {
+		var resp Pokemon
+		if err := json.Unmarshal(data, &resp); err != nil {
+			return Pokemon{}, err
+		}
+		return resp, nil
+	}
+
+	// 2. cache miss → HTTP
+	req, err := http.NewRequest("GET", fullUrl, nil)
+	if err != nil {
+		return Pokemon{}, err
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return Pokemon{}, err
+	}
+	defer res.Body.Close()
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		return Pokemon{}, err
+	}
+
+	var resp Pokemon
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return Pokemon{}, err
 	}
 
 	// 3. store in cache

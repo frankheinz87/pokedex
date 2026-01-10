@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 
@@ -46,6 +47,7 @@ type Config struct {
 	PokeapiClient    pokeapi.Client
 	NextLocationsURL *string
 	PrevLocationsURL *string
+	CaughtPokemon    map[string]pokeapi.Pokemon
 }
 
 var commands = map[string]cliCommand{
@@ -73,6 +75,11 @@ var commands = map[string]cliCommand{
 		name:        "explore",
 		description: "Displays all pokemon to be encountered in the chosen area",
 		callback:    CommandExp,
+	},
+	"catch": {
+		name:        "catch",
+		description: "Attempting to catch the chosen pokemon in the chosen area",
+		callback:    CommandCat,
 	},
 }
 
@@ -110,6 +117,28 @@ func CommandExp(cfg *Config, loc string) error {
 
 	}
 
+	return nil
+}
+
+func CommandCat(cfg *Config, poc string) error {
+	url := "https://pokeapi.co/api/v2/pokemon"
+	if cfg.NextLocationsURL != nil {
+		url = *cfg.NextLocationsURL
+	}
+
+	locResp, err := cfg.PokeapiClient.GetPokemon(url, poc)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Throwing a Pokeball at %s...\n", poc)
+	roll := rand.Intn(locResp.Base_experience)
+	if roll > 40 {
+		fmt.Printf("%s excaped!\n", poc)
+	} else {
+		cfg.CaughtPokemon[poc] = locResp
+		fmt.Printf("%s was caught\n", poc)
+	}
 	return nil
 }
 
@@ -240,6 +269,11 @@ func getCommands() map[string]cliCommand {
 			name:        "mapb",
 			description: "Displays all pokemon to be encountered in the chosen area",
 			callback:    CommandExp,
+		},
+		"catch": {
+			name:        "catch",
+			description: "Attempting to catch the chosen pokemon in the chosen area",
+			callback:    CommandCat,
 		},
 	}
 }
