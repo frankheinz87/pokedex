@@ -86,6 +86,11 @@ var commands = map[string]cliCommand{
 		description: "Shows the stats of a caught pokemon",
 		callback:    CommandIns,
 	},
+	"pokedex": {
+		name:        "pokedex",
+		description: "Shows a list of all caught pokemon",
+		callback:    CommandPok,
+	},
 }
 
 func CommandExit(cfg *Config, loc string) error {
@@ -200,11 +205,19 @@ func CommandIns(cfg *Config, poc string) error {
 	fmt.Printf("Weight: %v\n", cfg.CaughtPokemon[poc].Weight)
 	fmt.Println("Stats:")
 	for _, stat := range cfg.CaughtPokemon[poc].Stats {
-		fmt.Printf("	-%s: %v\n", stat.Stat.Name, stat.Base_stat)
+		fmt.Printf("	- %s: %v\n", stat.Stat.Name, stat.Base_stat)
 	}
 	fmt.Println("Types:")
 	for _, t := range cfg.CaughtPokemon[poc].Types {
-		fmt.Printf("	-%s\n", t.Type.Name)
+		fmt.Printf("	- %s\n", t.Type.Name)
+	}
+	return nil
+}
+
+func CommandPok(cfg *Config, poc string) error {
+	fmt.Println("Your Pokedex:")
+	for _, p := range cfg.CaughtPokemon {
+		fmt.Printf("	- %s\n", p.Name)
 	}
 	return nil
 }
@@ -304,6 +317,11 @@ func getCommands() map[string]cliCommand {
 			name:        "inspect",
 			description: "Shows the stats of a caught pokemon",
 			callback:    CommandIns,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Shows a list of all caught pokemon",
+			callback:    CommandPok,
 		},
 	}
 }
