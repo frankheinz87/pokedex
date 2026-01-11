@@ -81,6 +81,11 @@ var commands = map[string]cliCommand{
 		description: "Attempting to catch the chosen pokemon in the chosen area",
 		callback:    CommandCat,
 	},
+	"inspect": {
+		name:        "inspect",
+		description: "Shows the stats of a caught pokemon",
+		callback:    CommandIns,
+	},
 }
 
 func CommandExit(cfg *Config, loc string) error {
@@ -184,6 +189,26 @@ func CommandMapb(cfg *Config, loc string) error {
 	}
 }
 
+func CommandIns(cfg *Config, poc string) error {
+	_, ok := cfg.CaughtPokemon[poc]
+	if !ok {
+		fmt.Printf("%s has not been caught yet!\n", poc)
+		return nil
+	}
+	fmt.Printf("Name: %s\n", poc)
+	fmt.Printf("Height: %v\n", cfg.CaughtPokemon[poc].Height)
+	fmt.Printf("Weight: %v\n", cfg.CaughtPokemon[poc].Weight)
+	fmt.Println("Stats:")
+	for _, stat := range cfg.CaughtPokemon[poc].Stats {
+		fmt.Printf("	-%s: %v\n", stat.Stat.Name, stat.Base_stat)
+	}
+	fmt.Println("Types:")
+	for _, t := range cfg.CaughtPokemon[poc].Types {
+		fmt.Printf("	-%s\n", t.Type.Name)
+	}
+	return nil
+}
+
 /*func Execute(cfg *Config, words []string) error {
 	if len(words) == 0 {
 		return nil
@@ -274,6 +299,11 @@ func getCommands() map[string]cliCommand {
 			name:        "catch",
 			description: "Attempting to catch the chosen pokemon in the chosen area",
 			callback:    CommandCat,
+		},
+		"inspect": {
+			name:        "inspect",
+			description: "Shows the stats of a caught pokemon",
+			callback:    CommandIns,
 		},
 	}
 }
